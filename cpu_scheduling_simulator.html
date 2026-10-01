@@ -67,7 +67,7 @@
         }
         /* Smooth moving timeline playhead with dynamic color glow */
         #timelinePlayhead {
-            transition: left 0.1s linear, background-color 0.2s ease, box-shadow 0.2s ease;
+            transition: left 0.08s linear, background-color 0.2s ease, box-shadow 0.2s ease;
         }
         #playheadPin {
             transition: background-color 0.2s ease, border-color 0.2s ease;
@@ -333,13 +333,13 @@
                     </div>
                 </div>
 
-                <!-- Unified Timeline Chart Surface (Fixed Left Border & Overlap) -->
-                <div class="border border-slate-800 rounded-xl bg-slate-950 overflow-x-auto shadow-inner relative" id="timelineScrollWrapper">
+                <!-- Unified Timeline Chart Surface -->
+                <div class="border border-slate-800 rounded-xl bg-slate-950 overflow-x-auto shadow-inner relative pt-6" id="timelineScrollWrapper">
                     
                     <div id="timelineContentWrapper" class="min-w-full flex">
                         
-                        <!-- Fixed Left Process Label Column (แนบชิดซ้าย 100% ปิดทึบ มีเงาตัดเลเยอร์) -->
-                        <div class="w-32 flex-shrink-0 sticky left-0 z-30 bg-slate-950 px-3.5 py-4 border-r border-slate-800 shadow-[6px_0_15px_-3px_rgba(0,0,0,0.85)] space-y-2 select-none">
+                        <!-- Fixed Left Process Label Column -->
+                        <div class="w-32 flex-shrink-0 sticky left-0 z-30 bg-slate-950 px-3.5 py-4 border-r border-slate-800 shadow-[8px_0_16px_rgba(0,0,0,0.9)] space-y-2 select-none">
                             <!-- CPU Core Label -->
                             <div class="h-10 flex items-center justify-between">
                                 <div>
@@ -369,20 +369,20 @@
                             </div>
                         </div>
 
-                        <!-- Right Tracks Surface (แนบติดขอบคอลัมน์ซ้ายทันที) -->
+                        <!-- Right Tracks Surface with Dynamic Colored Playhead -->
                         <div class="flex-1 relative space-y-2 py-4 pr-4 pl-0" id="tracksContainer">
                             
-                            <!-- Dynamic Running Playhead (สีเปลี่ยนตาม Process ที่ Active) -->
-                            <div id="timelinePlayhead" class="absolute top-0 bottom-0 w-[2px] pointer-events-none z-20 flex flex-col items-center" style="left: 0%; background-color: #38bdf8; box-shadow: 0 0 12px #38bdf8;">
-                                <div id="playheadBadge" class="font-mono text-[9px] font-black px-1.5 py-0.5 rounded-sm shadow-md -translate-y-2.5 select-none border transition-colors flex items-center gap-1">
+                            <!-- Dynamic Running Playhead (เรืองแสง ชัดเจน ไม่โดนตัดขอบ) -->
+                            <div id="timelinePlayhead" class="absolute top-0 bottom-4 w-[2px] pointer-events-none z-20 flex flex-col items-center" style="left: 0%; background-color: #38bdf8; box-shadow: 0 0 10px #38bdf8, 0 0 20px #38bdf8;">
+                                <div id="playheadBadge" class="font-mono text-[10px] font-black px-2 py-0.5 rounded shadow-xl -translate-y-full mb-1 select-none border border-slate-700 bg-slate-900 text-white flex items-center gap-1.5 whitespace-nowrap">
                                     <span id="playheadPidText">P1</span>
-                                    <span class="opacity-60">|</span>
+                                    <span class="opacity-50">|</span>
                                     <span id="playheadTimeText">0ms</span>
                                 </div>
-                                <div id="playheadPin" class="w-1.5 h-1.5 rotate-45 -mt-0.5"></div>
+                                <div id="playheadPin" class="w-2 h-2 rotate-45 -mt-1 bg-sky-400 shadow"></div>
                             </div>
 
-                            <!-- 1. CPU Execution Bar (ชิดเส้นคั่นซ้ายสนิท 100%) -->
+                            <!-- 1. CPU Execution Bar -->
                             <div class="h-10 rounded-r-xl border-y border-r border-slate-700/80 bg-slate-900/90 shadow-lg relative overflow-hidden flex" id="ganttBarContainer">
                             </div>
 
@@ -406,7 +406,7 @@
 
                 <!-- Hover Details Banner -->
                 <div id="ganttInfoBanner" class="text-xs text-slate-400 bg-slate-800/40 p-2.5 rounded-lg border border-slate-800 flex items-center justify-between">
-                    <span>💡 <strong>Tip:</strong> เส้นแถบวิ่งแนวตั้งจะปรับเปลี่ยนสีตาม Process ที่กำลังได้รับ CPU ณ เวลาปัจจุบัน</span>
+                    <span>💡 <strong>Tip:</strong> เส้นแถบวิ่งแนวตั้งสีนีออนจะวิ่งและปรับสีตาม Process ที่กำลังได้รับ CPU ณ เวลาปัจจุบัน</span>
                     <span id="ganttSliceDetail" class="font-mono text-indigo-300 font-medium">Ready</span>
                 </div>
             </div>
@@ -610,13 +610,19 @@
         function adjustZoom(delta) {
             zoomLevel = Math.max(0.5, Math.min(4.0, zoomLevel + delta));
             document.getElementById('zoomDisplay').innerText = `${Math.round(zoomLevel * 100)}%`;
-            if (activeSimulation) renderSyncedGantt(activeSimulation);
+            if (activeSimulation) {
+                renderSyncedGantt(activeSimulation);
+                updateStepView(currentStepIndex);
+            }
         }
 
         function resetZoom() {
             zoomLevel = 1.0;
             document.getElementById('zoomDisplay').innerText = `Fit`;
-            if (activeSimulation) renderSyncedGantt(activeSimulation);
+            if (activeSimulation) {
+                renderSyncedGantt(activeSimulation);
+                updateStepView(currentStepIndex);
+            }
         }
 
         function getProcessColor(pid) {
@@ -1492,29 +1498,31 @@
                 statusTag.style.backgroundColor = `${procColor}1a`;
             }
 
-            // Real-Time Playhead Cursor Position & Dynamic Color
+            // Real-Time Playhead Position & Dynamic Neon Glow
             const playhead = document.getElementById('timelinePlayhead');
             const playheadPin = document.getElementById('playheadPin');
             const playheadBadge = document.getElementById('playheadBadge');
             const playheadPid = document.getElementById('playheadPidText');
             const playheadTime = document.getElementById('playheadTimeText');
+            const ganttBar = document.getElementById('ganttBarContainer');
 
-            if (activeSimulation.totalTime > 0) {
-                const percent = (step.time / activeSimulation.totalTime) * 100;
-                playhead.style.left = `${percent}%`;
-                
-                playhead.style.backgroundColor = procColor;
-                playhead.style.boxShadow = isIdle 
-                    ? `0 0 8px rgba(100, 116, 139, 0.5)`
-                    : `0 0 14px ${procColor}, 0 0 4px ${procColor}`;
+            if (activeSimulation.totalTime > 0 && ganttBar) {
+                // คำนวณเป็น Pixel แม่นยำตรงตำแหน่งเป๊ะทั้งตอน Zoom และ Scroll
+                const totalBarWidth = ganttBar.offsetWidth;
+                const leftPx = (step.time / activeSimulation.totalTime) * totalBarWidth;
+                playhead.style.left = `${leftPx}px`;
 
-                playheadPin.style.backgroundColor = procColor;
+                const glowColor = isIdle ? '#94a3b8' : procColor;
+                playhead.style.backgroundColor = glowColor;
+                playhead.style.boxShadow = `0 0 10px ${glowColor}, 0 0 20px ${glowColor}`;
 
-                playheadBadge.style.backgroundColor = isIdle ? '#1e293b' : procColor;
-                playheadBadge.style.borderColor = isIdle ? '#475569' : `${procColor}cc`;
-                playheadBadge.style.color = isIdle ? '#94a3b8' : '#0b1120';
-                
+                playheadPin.style.backgroundColor = glowColor;
+
+                playheadBadge.style.borderColor = glowColor;
+                playheadBadge.style.backgroundColor = '#090d16';
+
                 playheadPid.innerText = step.runningPid;
+                playheadPid.style.color = glowColor;
                 playheadTime.innerText = `${step.time}ms`;
             }
 
